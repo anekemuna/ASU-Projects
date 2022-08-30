@@ -1,0 +1,265 @@
+---
+title: "Project 1: Life Expectancy"
+author: "Munachimso Aneke"
+date: '2022-06-12'
+output: 
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
+---
+
+```{r setup, include=FALSE}
+# import libraries
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(DT)
+library(reshape2)
+```
+
+## Introduction
+### Data
+
+- The data used in this analysis was collected from WHO and United Nations website with the help of Deeksha Russell and Duan Wang. For more information about the data: https://www.kaggle.com/datasets/kumarajarshi/life-expectancy-who.
+- Using observations from 2000 to 2015, the data compares the life expectancy for 193 countries based on certain factors like adult mortality, alcohol consumption, total expenditure e.t.c. The has a categorical variable called `Status`. `Status` tells us if the country is developed or developing.
+
+### Problem
+
+- I am running a multiple linear regression analysis. 
+- My question is "Which factors make a bigger impact on the life expectancy age in developed and developing countries?"  
+- Using linear regression seems to be a good tool to decide if there is a strong correlation between certain factors and life expectancy.
+
+
+## Data Wrangling & Summary
+My data has missing values, so my first step is to get rid of missing values. There is no further step needed to clean the original dataset.
+
+A peek at the data:
+```{r, include=FALSE}
+life_df = na.omit(read.csv("Life Expectancy Data.csv", sep = ",", header = TRUE, 
+                           check.names = FALSE))
+```
+
+```{r}
+datatable(head(life_df), extensions = 'FixedColumns',options = list(dom = 't',
+                                scrollX = TRUE, fixedColumns = list(leftColumns = 3)))
+```
+
+
+## {}
+Summary of each numeric variables variable in the data
+```{r}
+sm = summary(life_df)
+sm[1:6, c(2,4:12)]
+```
+## {}
+```{r}
+sm[1:6, 13:22]
+```
+
+## Developed vs Developing
+There is a general trend for the average life expectancy age to be higher in developed countries than in developing countries. 
+
+This is the reason why I chose to evaluate predicting variables based on the status of the countries. What factors stand out the most?
+
+```{r, message=FALSE}
+life_dev = life_df %>% group_by(Status, Year) %>% 
+  summarize(`Avg Life Expectancy` = round(mean(`Life expectancy`),1))
+
+life_p = ggplotly(ggplot(life_dev, aes(x =Year, y = `Avg Life Expectancy`, fill = Status )) + 
+            geom_bar(stat = "identity", position = position_dodge()) + 
+            theme(axis.text.x= element_text(angle = 45,vjust = 0.5, hjust=1)) + 
+            labs(title = "Average Expectancy Age per Year based on Status"))
+```
+## {}
+```{r}
+life_p
+```
+
+
+## Data Preprocessing
+The goal of this project is to find the factors that affect life expectancy in both developing and devloped countries. In order to achieve this, the data set has to be split into developing (`undev_life`) and developed (`dev_life`) sets.
+
+```{r}
+undev_life = life_df %>% filter(Status == "Developing")
+datatable(head(undev_life, 1), extensions = 'FixedColumns',options = list(dom = 't',
+                                scrollX = TRUE, fixedColumns = list(leftColumns = 3)))
+dev_life = life_df %>% filter(Status == "Developed")
+datatable(head(dev_life, 1), extensions = 'FixedColumns',options = list(dom = 't',
+                                scrollX = TRUE, fixedColumns = list(leftColumns = 3)))
+```
+
+## Regression Analysis
+
+Since there are multiple predictor variables, the following steps would be used to choose the best 
+
+- Step 1: Checking for multicollinearity using a correlation heat map
+- Step 2: Eliminate Columns that cause multicollinearity
+- Step 3: Apply multiple Linear regression model
+- Step 4: Eliminating statistically insignificant factors based on p-value
+
+
+## Regression Analysis: Developing
+
+### Step 1: Checking for multicollinearity
+
+```{r}
+undev_cor <-melt(round(cor(undev_life %>% select(`Life expectancy`:Schooling)), 2))
+
+undev_corp <- ggplot(data =undev_cor, aes(x=Var1, y=Var2, fill=value)) + geom_tile() +
+      geom_text(aes(Var2, Var1, label = value), color = "white", size = 2)+
+      theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+      labs(title = "Correlation Heat Map (Developing)", x = "", y = "")
+```
+## {}
+```{r}
+undev_corp
+```
+
+
+## {}
+
+### Step 2: Eliminate Columns that cause multicollinearity
+
+To decide which columns cause multicollinearity, I checked for a |r| > 0.9. 
+From the heat map the following cause multicollinearity:
+
+1. Under five deaths and infant deaths
+2. thinness 1-19 years and thinness 5 - 9 years
+3. GDP and percentage expenditure
+
+To decide which column to keep, I chose the column with highest |r| when compared to life expectancy
+Columns eliminated: 
+
+1. infant deaths
+2. thinness 1-19 years
+3. percentage expenditure
+
+### Step 3: Apply linear regression model
+```{r}
+undev_m = lm(`Life expectancy`~`Adult Mortality`+`Alcohol`+`Hepatitis B` +`Measles`+`BMI` +
+               `under-five deaths`+`Polio`+`Total expenditure`+`Diphtheria` +
+               `HIV/AIDS`+`GDP`+`Population` + `thinness 5-9 years` +
+               `Income composition of resources`+ `Schooling`, data = undev_life)
+```
+
+
+## {}
+### Step 4: Eliminating statistically insignificant factors based on p-value (alpha = 0.05)
+```{r}
+datatable(summary(undev_m)$coefficients, options = list(pageLength = 8))
+```
+
+The columns eliminated: Hepatitis B, Polio, Total expenditure, Population, and thinness 5-9 years
+
+## {}
+The final regression is modeled using this: 
+```{r, include=FALSE}
+undev_m1 = lm(`Life expectancy`~`Adult Mortality`+`Alcohol` +`Measles`+`BMI`+`under-five deaths` +
+  `Diphtheria` +`HIV/AIDS`+`GDP`+`Income composition of resources`+ `Schooling`, 
+   data = undev_life)
+```
+
+`Life Expectancy` = `Intercept`+ `Adult Mortality`(x1) + `Alcohol`(x2) + `Measles`(x3) + `BMI`(x4) + `under-five deaths`(x5) + `Diphtheria`(x6) +`HIV/AIDS`(x7) + `GDP`(x8)+ `Income composition of resources`(x9) + `Schooling`(x10)
+
+
+## Regression Analysis: Developed
+
+### Step 1: Checking for multicollinearity among predictor variables
+
+```{r warning=FALSE}
+dev_cor <-melt(round(cor(dev_life %>% select(`Life expectancy`:Schooling)), 2))
+
+dev_corp <- ggplot(data =dev_cor, aes(x=Var1, y=Var2, fill=value)) + geom_tile() +
+        geom_text(aes(Var2, Var1, label = value), color = "white", size = 2)+
+        theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+        labs(title = "Correlation Heat Map (Developed)", x = "", y = "")
+```
+## {}
+```{r}
+dev_corp
+```
+
+
+## {}
+
+### Step 2: Eliminate Columns that cause multicollinearity
+
+To decide which columns cause multicollinearity, I checked for a |r| > 0.9. 
+From the heat map the following cause multicollinearity:
+
+1. Under five deaths and infant deaths
+2. thinness 1-19 years and thinness 5 - 9 years
+3. GDP and percentage expenditure
+
+To decide which column to keep, I chose the column with highest |r| when compared to life expectancy
+Columns eliminated: 
+
+1. under-five deaths
+2. thinness 5-9 years
+3. percentage expenditure
+4. HIV/AIDS (due to error "the standard deviation is zero")
+
+### Step 3: Apply linear regression model
+```{r}
+dev_m = lm(`Life expectancy`~`Adult Mortality`+`infant deaths`+`Alcohol`+ `Hepatitis B` +`Measles`+`BMI`+
+ `Polio`+`Total expenditure`+`Diphtheria`+ `GDP`+`Population` + `thinness  1-19 years` +
+   `Income composition of resources`+ `Schooling`, data = undev_life)
+```
+
+
+## {}
+#### Step 4: Eliminating statistically insignificant factors based on p-value (alpha = 0.05)
+```{r}
+datatable(summary(dev_m)$coefficients, options = list(pageLength = 8))
+```
+
+The columns eliminated: Hepatitis B, Total expenditure, Measles, Population, Polio, infant deaths
+
+## {}
+The final regression is modeled using this: 
+```{r, include=FALSE}
+dev_m1 = lm(`Life expectancy`~`Adult Mortality`+`Alcohol`+`BMI`+`Diphtheria`+ `GDP`+ 
+  `thinness  1-19 years` + `Income composition of resources`+ `Schooling`, data = undev_life)
+```
+
+`Life expectancy` = `Intercept` + `Adult Mortality`(x1) + `Alcohol`(x2) +`BMI`(x3) + `Diphtheria`(x4) + `GDP`(x5) +`thinness  1-19 years`(x6) + `Income composition of resources`(x7)+ `Schooling`(x8)
+
+## Examining Residual Plots
+
+Examining residual plots helps to see how effective my models are.
+Ideal residual plots should have a symmetrical distribution that clusters towards the middle of the plot. 
+
+My plot (on the next slide), does not fully conform to what an ideal residual plots is supposed to look like. 
+
+Creeating Subplots
+```{r}
+undev_p = plot_ly(x=undev_m1$fitted.values, y=undev_m1$residuals, type="scatter", mode="markers",
+                name = "developing", marker = list(color = "blue")) 
+
+dev_p = plot_ly(x = dev_m1$fitted.values, y = dev_m1$residuals, type = "scatter", mode= "markers",
+                name = "developed", marker = list(color = "red"))
+```
+
+## {}
+
+```{r}
+plots <- subplot(undev_p, dev_p, nrows = 2) %>% layout(title = "Residuals vs Fitted Values", 
+                yaxis = list(title = "Residuals"), xaxis = list(title = "Fitted Values"), 
+                margin = list(l = 50, r = 1, b = 1, t = 80))
+plots
+```
+
+## Conclusion
+
+According to regression models the factors affecting life expectancy in developing countries include:- Adult Mortality, Alcohol, Measles, BMI, under-five deaths, Diphtheria, HIV/AIDS, GDP, Income composition of resources, Schooling
+
+Factors affecting life expectancy in developed countries include:- Adult Mortality, Alcohol, BMI, Diphtheria, GDP, thinness  1-19 years, Income composition of resources, Schooling.
+
+Factors that cut across both models include:- Adult Mortality, Alcohol, BMI, Diphtheria, GDP, Income composition of resources, Schooling.
+
+Although, looking at my residual plots, I have an unbalanced Y-axis, which means my models could be made significantly more accurate.
+
+(Presentation link:
+https://asu.zoom.us/rec/share/TJk2uFoqU9Jy67QiUhFYLTDvypuUge5HcczaTLnu66jxKkXjKsKMh-AJoiToyLe5.t8nmhdg478nqFVB_
+
+Access Passcode: dat301_Project1)

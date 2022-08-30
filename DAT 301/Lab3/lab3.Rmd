@@ -1,0 +1,47 @@
+---
+title: "Lab 3"
+output:
+  html_document:
+    df_print: paged
+---
+
+In this lab you need to create a shiny app. 
+
+Naturally, you would need to install `shiny` package.  You can either create ui.R and server.R files, or just one .R file with both UI and server codes in it.
+
+## Requirements
+
+- (10 points) The app should be about some statistics topic or technique of your choice (for example: regression with various data sets, simulation of various probability distributions, confidence and prediction bands in regression, etc.).
+
+- (10 points) At least two different kinds of GUI components/widgets must be included (slider, checkbox, table, tabs, menubar/selectbar, radio button, submit button, etc.)
+
+- (20 points) Must include an interactive plot (you can use base plot, ggplot, or (3D) plotly)
+
+- (10 points) Shiny app must knit for grader (so make sure to turn in all components the app needs to run), must be turned in on time, must include PDF of HTML output and RMD file.  You also need to submit in Canvas a PDF file explaining what your shiny app does, what its features are, etc. The description of your app doesn’t have to be detailed, especially if it is clear from the plot. If, however, your app has some interesting feature that is not obviously visible upon opening the app, you may want to point that out and explain it.
+
+## Note
+
+Apart from examples of shiny apps in Canvas, you can also go to shiny gallery (https://shiny.rstudio.com/gallery/) and see a lot of cool apps, or you can run the following examples in you RStudio console.
+
+```{r}
+library(shiny)
+runExample("01_hello") # a histogram
+runExample("02_text") # tables and data frames
+runExample("03_reactivity") # a reactive expression
+runExample("04_mpg") # global variables
+runExample("05_sliders") # slider bars
+runExample("06_tabsets") # tabbed panels
+runExample("07_widgets") # help text and submit buttons
+runExample("08_html") # Shiny app built from HTML
+runExample("09_upload") # file upload wizard
+runExample("10_download") # file download wizard
+runExample("11_timer") # an automated timer
+```
+
+## Important
+
+This is NOT a group work, two students CANNOT have the same lab, i.e. the same shiny app. 
+
+Copying a file/shiny app from someone or from some webpage is cheating and violates academic integrity!
+
+Copying a file/shiny from other student or a webpage automatically results in the score of 0 pts, and other possible sanctions include, but are not limited to: course failure (indicated on the transcript as a grade of E), course failure due to academic dishonesty (indicated on the transcript as a grade of XE), loss of registration privileges, disqualification and dismissal. For more information, please see http://provost.asu.edu/academicintegrity.
