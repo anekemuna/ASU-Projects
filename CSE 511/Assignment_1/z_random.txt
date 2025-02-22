@@ -1,0 +1,28 @@
+pg_bulkload -U postgres -d postgres -f /path/to/your/data.csv -c load_data.ctl
+
+psql -U $DB_USER -d $DB_NAME -c "SELECT * FROM test_data;"
+# Step 4: Drop Table {psql -U postgres -d postgres -c "DROP TABLE test_data;"}
+
+If I have 4 tables, and I want to list all the constraint key for each in a table to confirm what will it look mlike
+
+10. Use a Larger Transaction Size
+When running multiple COPY commands or INSERT statements in a script, try to group them into larger transactions to reduce overhead. For example:
+BEGIN;
+COPY table1 FROM 'file1.csv';
+COPY table2 FROM 'file2.csv';
+COMMIT;
+
+8. Use Unlogged Tables for Temporary Staging
+If the data import is temporary and doesn't need to be logged, you can use unlogged tables, which are faster as they do not generate WAL logs:
+CREATE UNLOGGED TABLE table_name (...);
+COPY table_name FROM 'file_path';
+This is particularly useful when you're just staging data and don't need to ensure durability until after the load.
+
+Indexes: When importing large data sets, indexes can slow down the process as PostgreSQL will try to maintain the indexes while inserting data. You can drop indexes before the COPY operation and recreate them afterward.
+-- Drop indexes
+DROP INDEX IF EXISTS index_name;
+
+-- Run COPY here
+
+-- Recreate indexes
+CREATE INDEX index_name ON table_name (column_name);
